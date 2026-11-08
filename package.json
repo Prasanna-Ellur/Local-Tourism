@@ -1,0 +1,29 @@
+{
+  "name": "explorelocal",
+  "version": "1.0.0",
+  "description": "ExploreLocal — Local Tourism, Homestays & Cultural Experience Booking Platform",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "test:e2e": "cd backend && npx ts-node src/test-e2e.ts",
+    "prisma:seed": "cd backend && npm run prisma:seed",
+    "prisma:generate": "cd backend && npm run prisma:generate",
+    "prisma:push": "cd backend && npm run prisma:push"
+  },
+  "keywords": [
+    "tourism",
+    "homestay",
+    "travel",
+    "booking",
+    "culture",
+    "react",
+    "express",
+    "typescript",
+    "prisma"
+  ],
+  "author": "ExploreLocal Engineering Team",
+  "license": "ISC"
+}

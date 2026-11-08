@@ -1,0 +1,391 @@
+// This is your Prisma schema file for ExploreLocal
+// Supports SQLite for zero-config local development and testing, 
+// and matches schema.postgresql.prisma for production PostgreSQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String    @default("TOURIST") // TOURIST, SERVICE_PROVIDER, ADMIN
+  phone        String?
+  avatar       String?
+  bio          String?
+  isApproved   Boolean   @default(true) // For SERVICE_PROVIDER verification
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relationships
+  homestays            Homestay[]
+  tourGuides           TourGuide[]
+  culturalExperiences  CulturalExperience[]
+  localBusinesses      LocalBusiness[]
+  bookings             Booking[]
+  reviews              Review[]
+  notifications        Notification[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Destination {
+  id               String    @id @default(uuid())
+  name             String
+  slug             String    @unique
+  state            String
+  region           String
+  description      String
+  heroImage        String
+  images           String    // JSON array of image URLs
+  bestTimeToVisit  String
+  attractions      String    // JSON array of popular attractions
+  travelInfo       String    // Information on how to reach / travel tips
+  latitude         Float?
+  longitude        Float?
+  isFeatured       Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relationships
+  homestays            Homestay[]
+  tourGuides           TourGuide[]
+  culturalExperiences  CulturalExperience[]
+  localBusinesses      LocalBusiness[]
+
+  @@index([slug])
+  @@index([state])
+  @@index([isFeatured])
+}
+
+model Homestay {
+  id            String    @id @default(uuid())
+  providerId    String
+  destinationId String
+  name          String
+  slug          String    @unique
+  description   String
+  address       String
+  city          String
+  state         String
+  pricePerNight Float
+  checkInTime   String    @default("14:00")
+  checkOutTime  String    @default("11:00")
+  houseRules    String?
+  amenities     String    // JSON array of amenities
+  maxGuests     Int       @default(2)
+  rating        Float     @default(5.0)
+  reviewCount   Int       @default(0)
+  isAvailable   Boolean   @default(true)
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  provider      User                @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  destination   Destination         @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  rooms         Room[]
+  images        HomestayImage[]
+  bookings      Booking[]
+  reviews       Review[]
+  availability  Availability[]
+
+  @@index([providerId])
+  @@index([destinationId])
+  @@index([pricePerNight])
+  @@index([rating])
+}
+
+model Room {
+  id           String    @id @default(uuid())
+  homestayId   String
+  name         String
+  description  String?
+  roomType     String    // e.g. "Deluxe Room", "Standard Cottage", "Heritage Suite"
+  pricePerNight Float
+  capacity     Int       @default(2)
+  bedType      String    @default("King Bed")
+  isAvailable  Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relationships
+  homestay     Homestay       @relation(fields: [homestayId], references: [id], onDelete: Cascade)
+  bookings     Booking[]
+  availability Availability[]
+
+  @@index([homestayId])
+}
+
+model HomestayImage {
+  id         String   @id @default(uuid())
+  homestayId String
+  url        String
+  caption    String?
+  isFeatured Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  // Relationships
+  homestay   Homestay @relation(fields: [homestayId], references: [id], onDelete: Cascade)
+
+  @@index([homestayId])
+}
+
+model TourGuide {
+  id                String    @id @default(uuid())
+  providerId        String
+  destinationId     String
+  name              String
+  bio               String
+  photoUrl          String
+  languages         String    // JSON array or comma separated
+  yearsOfExperience Int       @default(1)
+  specializations   String    // JSON array or comma separated
+  pricePerDay       Float
+  pricePerHour      Float?
+  rating            Float     @default(5.0)
+  reviewCount       Int       @default(0)
+  isAvailable       Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relationships
+  provider          User           @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  destination       Destination    @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  bookings          Booking[]
+  reviews           Review[]
+  availability      Availability[]
+
+  @@index([providerId])
+  @@index([destinationId])
+  @@index([rating])
+}
+
+model CulturalExperience {
+  id              String    @id @default(uuid())
+  providerId      String
+  destinationId   String
+  title           String
+  description     String
+  category        String    // "Traditional Food", "Village Tour", "Handicrafts", "Heritage", "Nature", etc.
+  location        String
+  durationHours   Float     @default(2.0)
+  price           Float
+  maxParticipants Int       @default(10)
+  included        String    // JSON array of what is included
+  images          String    // JSON array of image URLs
+  rating          Float     @default(5.0)
+  reviewCount     Int       @default(0)
+  isAvailable     Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relationships
+  provider        User        @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  destination     Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  bookings        Booking[]
+  reviews         Review[]
+
+  @@index([providerId])
+  @@index([destinationId])
+  @@index([category])
+  @@index([price])
+}
+
+model LocalBusiness {
+  id            String    @id @default(uuid())
+  providerId    String
+  destinationId String
+  name          String
+  category      String    // "Handicrafts & Souvenirs", "Traditional Eatery", "Organic Farm Produce", etc.
+  description   String
+  address       String
+  phone         String?
+  email         String?
+  website       String?
+  openingHours  String?   // e.g. "9:00 AM - 8:00 PM"
+  images        String    // JSON array of image URLs
+  priceRange    String    @default("$$") // $, $$, $$$, $$$$
+  isFeatured    Boolean   @default(false)
+  rating        Float     @default(5.0)
+  reviewCount   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  provider      User        @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  reviews       Review[]
+
+  @@index([providerId])
+  @@index([destinationId])
+  @@index([category])
+}
+
+model Booking {
+  id                 String    @id @default(uuid())
+  bookingReference   String    @unique
+  userId             String
+  bookingType        String    // "HOMESTAY", "GUIDE", "EXPERIENCE"
+  
+  // Specific targets (nullable depending on type)
+  homestayId         String?
+  roomId             String?
+  tourGuideId        String?
+  experienceId       String?
+
+  checkInDate        DateTime?
+  checkOutDate       DateTime?
+  startDate          DateTime? // For tours / experiences
+  numberOfGuests     Int       @default(1)
+  
+  basePrice          Float
+  serviceFee         Float     @default(0.0)
+  taxes              Float     @default(0.0)
+  totalPrice         Float
+
+  status             String    @default("PENDING") // PENDING, CONFIRMED, REJECTED, CANCELLED, COMPLETED
+  paymentStatus      String    @default("PENDING") // PENDING, SUCCESSFUL, FAILED, REFUNDED
+  
+  specialRequests    String?
+  contactName        String
+  contactEmail       String
+  contactPhone       String
+
+  cancelledAt        DateTime?
+  cancellationReason String?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relationships
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  homestay           Homestay?           @relation(fields: [homestayId], references: [id], onDelete: SetNull)
+  room               Room?               @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  tourGuide          TourGuide?          @relation(fields: [tourGuideId], references: [id], onDelete: SetNull)
+  culturalExperience CulturalExperience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+  payment            Payment?
+
+  @@index([bookingReference])
+  @@index([userId])
+  @@index([homestayId])
+  @@index([roomId])
+  @@index([tourGuideId])
+  @@index([experienceId])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+model Payment {
+  id               String    @id @default(uuid())
+  bookingId        String    @unique
+  transactionId    String    @unique
+  amount           Float
+  currency         String    @default("INR")
+  status           String    @default("PENDING") // PENDING, SUCCESSFUL, FAILED, REFUNDED
+  paymentMethod    String    @default("CARD") // CARD, UPI, NETBANKING, MOCK
+  paymentGateway   String    @default("MOCK") // RAZORPAY, MOCK
+  gatewayOrderId   String?
+  gatewayPaymentId String?
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relationships
+  booking          Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([status])
+}
+
+model Review {
+  id               String    @id @default(uuid())
+  userId           String
+  targetType       String    // "HOMESTAY", "GUIDE", "EXPERIENCE", "BUSINESS"
+  
+  homestayId       String?
+  tourGuideId      String?
+  experienceId     String?
+  businessId       String?
+
+  rating           Int       // 1 to 5
+  comment          String
+  providerResponse String?
+  respondedAt      DateTime?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relationships
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  homestay         Homestay?           @relation(fields: [homestayId], references: [id], onDelete: SetNull)
+  tourGuide        TourGuide?          @relation(fields: [tourGuideId], references: [id], onDelete: SetNull)
+  culturalExperience CulturalExperience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+  business         LocalBusiness?      @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([targetType])
+  @@index([homestayId])
+  @@index([tourGuideId])
+  @@index([experienceId])
+  @@index([businessId])
+}
+
+model Availability {
+  id          String    @id @default(uuid())
+  homestayId  String?
+  roomId      String?
+  tourGuideId String?
+  date        DateTime
+  isBooked    Boolean   @default(false)
+  isBlocked   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  // Relationships
+  homestay    Homestay?  @relation(fields: [homestayId], references: [id], onDelete: Cascade)
+  room        Room?      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tourGuide   TourGuide? @relation(fields: [tourGuideId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, date])
+  @@index([homestayId, date])
+  @@index([tourGuideId, date])
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?  // Lucide icon name
+  type        String   // "EXPERIENCE", "BUSINESS", "HOMESTAY"
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+  @@index([slug])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, BOOKING, PAYMENT, SYSTEM
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
